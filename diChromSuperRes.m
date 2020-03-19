@@ -17,21 +17,21 @@ function srImg = diChromSuperRes( highResImg, lowResImg, sigma, varargin )
   p.addRequired( 'highResImg', @isnumeric );
   p.addRequired( 'lowResImg', @isnumeric );
   p.addParameter( 'lambda', 1d3, @isnumeric );  % Tikhonov regularization parameter
-  p.addParameter( 'N', 50, @isnumeric );
-  p.addParameter( 'nWs', [], @isnumeric );
+  p.addParameter( 'N', 30, @isnumeric );
+  p.addParameter( 'ws', [], @isnumeric );
   p.addParameter( 'optAlg', 'fista_wLS', @(x) true );
   p.addParameter( 'verbose', 1, @(x) isnumeric(x) || islogical(x) );
   p.parse( highResImg, lowResImg, varargin{:} );
   lambda = p.Results.lambda;
   N = p.Results.N;
-  nWs = p.Results.nWs;
+  ws = p.Results.ws;
   optAlg = p.Results.optAlg;
   verbose = p.Results.verbose;
 
   lambda = lambda / numel( lowResImg );
 
-  if numel( nWs ) > 0, nWs = repmat( nWs, [1 1 2] ); end
-  
+  if numel( ws ) > 0, ws = repmat( ws, [1 1 2] ); end
+
   sHighRes = size( highResImg );
   srImg0 = imresize( lowResImg, sHighRes, 'bilinear' );
 
@@ -40,7 +40,7 @@ function srImg = diChromSuperRes( highResImg, lowResImg, sigma, varargin )
   ys = (1:sHighRes(1))' * ones(1,sHighRes(2));
   xqs = imresize( xs, sLowRes, 'nearest' );
   yqs = imresize( ys, sLowRes, 'nearest' );
-  
+
   function out = f( x )
     smoothX = smoothImg( x, 'gaussian', sigma );
     out = imresize( smoothX, sLowRes, 'nearest' );
@@ -51,8 +51,8 @@ function srImg = diChromSuperRes( highResImg, lowResImg, sigma, varargin )
   function [fx, wDx] = applyA( x )
     fx = f( x );
     Dx = D( x );
-    if numel( nWs ) > 0 
-      wDx = lambda * Dx .* nWs;
+    if numel( ws ) > 0 
+      wDx = lambda * Dx .* ws;
     else
       wDx = lambda * Dx;
     end
@@ -73,7 +73,7 @@ function srImg = diChromSuperRes( highResImg, lowResImg, sigma, varargin )
   function out = applyAdjA( x1, x2 )
     out1 = fAdj( x1 );
     wx2 = x2;
-    if numel( nWs ) > 0, wx2 = wx2 .* nWs; end
+    if numel( ws ) > 0, wx2 = wx2 .* ws; end
     out2 = lambda * DT( wx2 );
     out = out1 + out2;
   end
@@ -94,7 +94,7 @@ function srImg = diChromSuperRes( highResImg, lowResImg, sigma, varargin )
   end
 
   Dw = D( highResImg );
-  if numel( nWs ) > 0, Dw = Dw .* nWs; end
+  if numel( ws ) > 0, Dw = Dw .* ws; end
   b = [ lowResImg(:); lambda * Dw(:); ];
 
   function out = g( x )
@@ -106,10 +106,12 @@ function srImg = diChromSuperRes( highResImg, lowResImg, sigma, varargin )
   end
 
   function out = h( x )
-    if min( x ) < 0, out=Inf; else, out=0; end
+    out = 0;
+    if min( x ) < 0, out=Inf; end
   end
 
-  proxth = @(x,t) min( max( x, 0 ), 1 );
+  %proxth = @(x,t) min( max( x, 0 ), 1 );
+  proxth = @(x,t) max( x, 0 );
 
   %[check,err] = checkAdjoint( srImg0, @f, 'fAdj', @fAdj );
   %[check,err] = checkAdjoint( srImg0, D, 'fAdj', DT );
@@ -122,10 +124,10 @@ function srImg = diChromSuperRes( highResImg, lowResImg, sigma, varargin )
     srImg = projSubgrad( srImg0(:), @gGrad, proj, 't', t, 'verbose', verbose );
   elseif strcmp( optAlg, 'fista' )
     [srImg,objectiveValues] = fista( srImg0(:), @g, @gGrad, proxth, ...
-      'h', @h, 'N', N, 'verbose', verbose );
+      'h', @h, 'N', N, 'verbose', verbose, 'printEvery', 10 );
   else
     [srImg,objectiveValues] = fista_wLS( srImg0(:), @g, @gGrad, proxth, ...
-      'h', @h, 'N', N, 'verbose', verbose );
+      'h', @h, 'N', N, 'verbose', verbose, 'printEvery', 10 );
   end
   srImg = reshape( srImg, sHighRes );
 

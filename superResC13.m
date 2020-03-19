@@ -15,7 +15,8 @@ function srPyr = superResC13( protonImg, metaboliteImg, sigma, varargin )
 
   sProtonImg = size( protonImg );
   srMetabolite0 = imresize( metaboliteImg, sProtonImg, 'bilinear' );
+  %srMetabolite0 = imresize( metaboliteImg, sProtonImg, 'bicubic' );
 
-  srPyr = diChromSuperRes( protonImg, metaboliteImg, sigma, 'nWs', srMetabolite0, varargin{:} );
+  srPyr = diChromSuperRes( protonImg, metaboliteImg, sigma, 'ws', srMetabolite0, varargin{:} );
 end
 

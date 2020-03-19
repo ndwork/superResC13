@@ -15,11 +15,12 @@ function [M,C,sigma,lambda] = loadPanSharpenData( datacase )
         color = imread( '../data/pics/rocks.png' );
         color = double( color ) / 255;
         M = 0.2989 * color(:,:,1) + 0.5870 * color(:,:,2) + 0.1140 * color(:,:,3);
-        sigma = 2.0;
+        %sigma = 2.0;
+        sigma = 5.0;
         C = smoothImg( color, 'gaussian', sigma );
         C = cropData( C, [size(M)-9 3] );
         M = cropData( M, size(M)-9 );
-        C = C( 2:4:end, 2:4:end, : );
+        C = C( 2:sigma*2:end, 2:sigma*2:end, : );
         lambda = 1d3;
 
       case 2
