@@ -18,14 +18,13 @@ function run_codisData
   dsHighResImg = imresize( highResImg, size( lowResImg ) );
   figure; imshowscale( dsHighResImg, showScale*2 );
   titlenice( 'Downsampled high res img' );
-  %dsHighResPts = getFeaturesFromImg( nPts, showScale*2 );
-load 'pts.mat'
+  dsHighResPts = getFeaturesFromImg( nPts, showScale*2 );
   labelImgPts( dsHighResPts * showScale*2 );
 
 
   figure; imshowscale( lowResImg, showScale*2 );
   titlenice( 'Low res img' );
-  %lowResPts = getFeaturesFromImg( nPts, showScale*2 );
+  lowResPts = getFeaturesFromImg( nPts, showScale*2 );
   labelImgPts( lowResPts * showScale*2 );
 
   H21 = homographyFromPts2D( lowResPts, dsHighResPts );

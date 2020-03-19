@@ -1,6 +1,6 @@
 
 function [im_proton, im_pyr, im_lac, im_bic, im_lpRatio, lambda, subRegion, ds] = ...
-  loadC13SuperResData( datacase )
+  loadDiChromInterpC13Data( datacase )
 
   im_proton=0;  im_pyr=0;  im_lac=0;  im_bic=0;  im_lpRatio=0;
 

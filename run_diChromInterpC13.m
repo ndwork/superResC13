@@ -1,5 +1,5 @@
 
-function run_c13superRes( datacases, varargin )
+function run_diChromInterpC13( datacases, varargin )
   showImages = false;
   if nargin < 1, close all; rng(1); clear; end
 
@@ -8,19 +8,19 @@ function run_c13superRes( datacases, varargin )
   scaleIndividually = true;
 
   if nargin < 1
-    datacases = 6;
+    datacases = 1;
     showImages = false;
   end
 
   for datacase = datacases
     if ~exist( 'showImages', 'var' ) || showImages == false, close all; end
 
-    outDir = [ './output/output_c13superRes_', num2str(datacase) ];
-    mkdir( outDir );
+    outDir = [ './output/datacase_', num2str(datacase) ];
+    if ~exist( outDir, 'dir' ), mkdir( outDir ); end
 
     im_proton=0;  im_pyr=0;  im_lac=0;  im_bic=0;  im_lpRatio=0;   %#ok<NASGU>
     [im_proton, im_pyr, im_lac, im_bic, im_lpRatio, lambda, subRegion, ds] = ...
-      loadC13SuperResData( datacase );
+      loadDiChromInterpC13Data( datacase );
 
     maxProton = max( im_proton(:) );
     im_proton = im_proton / maxProton;
@@ -45,13 +45,13 @@ function run_c13superRes( datacases, varargin )
 
     nSlices = size( im_pyr, 3 );
     origPyrs = cell( 1, 1, nSlices );
-    superPyrs = cell( 1, 1, nSlices );
+    interpPyrs = cell( 1, 1, nSlices );
     origLacs = cell( 1, 1, nSlices );
-    superLacs = cell( 1, 1, nSlices );
+    interpLacs = cell( 1, 1, nSlices );
     origLpRatios = cell( 1, 1, nSlices );
     superLpRatios = cell( 1, 1, nSlices );
     origBics = cell( 1, 1, nSlices );
-    superBics = cell( 1, 1, nSlices );
+    interpBics = cell( 1, 1, nSlices );
     resizedProtons = cell( 1, 1, nSlices );
 
     parfor sliceIndx = 1 : nSlices
@@ -76,11 +76,13 @@ function run_c13superRes( datacases, varargin )
       if scaleIndividually == true, thisPyr2Save = thisPyr2Save / max( thisPyr2Save(:) ); end
       imwrite( thisPyr2Save, [ outDir, '/thisPyr_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
 
-      thisSuperPyr = superResC13( thisProton, thisPyr, blurFraction*ds, 'lambda', lambda );
-      thisSuperPyr2Save = thisSuperPyr( yL : yR, xL : xR );
-      if scaleIndividually == true, thisSuperPyr2Save = thisSuperPyr2Save / max( thisSuperPyr2Save(:) ); end
-      imwrite( thisSuperPyr2Save, [ outDir, '/thisSuperPyr_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
-      superPyrs{ sliceIndx } = thisSuperPyr( yL : yR, xL : xR );
+      thisDiChromInterpPyr = diChromInterpC13( thisProton, thisPyr, blurFraction*ds, 'lambda', lambda );
+      thisDiChromInterpPyr2Save = thisDiChromInterpPyr( yL : yR, xL : xR );
+      if scaleIndividually == true, thisDiChromInterpPyr2Save = ...
+          thisDiChromInterpPyr2Save / max( thisDiChromInterpPyr2Save(:) ); end
+      imwrite( thisDiChromInterpPyr2Save, [ outDir, '/thisDiChromInterpPyr_', ...
+        num2str(sliceIndx,'%3.3i'), '.jpg'] );
+      interpPyrs{ sliceIndx } = thisDiChromInterpPyr( yL : yR, xL : xR );
 
       if numel( im_lac ) > 1
         thisLac = im_lac( ceil(ds/2) : ds : end, ceil(ds/2) : ds : end, sliceIndx );
@@ -90,11 +92,13 @@ function run_c13superRes( datacases, varargin )
         if scaleIndividually == true, thisLac2Save = thisLac2Save / max( thisLac2Save(:) ); end
         imwrite( thisLac2Save, [ outDir, '/thisLac_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
 
-        thisSuperLac = superResC13( thisProton, thisLac, blurFraction*ds, 'lambda', lambda );
-        thisSuperLac2Save = thisSuperLac( yL : yR, xL : xR );
-        if scaleIndividually == true, thisSuperLac2Save = thisSuperLac2Save / max( thisSuperLac2Save(:) ); end
-        imwrite( thisSuperLac2Save, [ outDir, '/thisSuperLac_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
-        superLacs{ sliceIndx } = thisSuperLac( yL : yR, xL : xR );
+        thisDiChromInterpLac = diChromInterpC13( thisProton, thisLac, blurFraction*ds, 'lambda', lambda );
+        thisDiChromInterpLac2Save = thisDiChromInterpLac( yL : yR, xL : xR );
+        if scaleIndividually == true, thisDiChromInterpLac2Save = ...
+            thisDiChromInterpLac2Save / max( thisDiChromInterpLac2Save(:) ); end
+        imwrite( thisDiChromInterpLac2Save, [ outDir, '/thisDiChromInterpLac_', ...
+          num2str(sliceIndx,'%3.3i'), '.jpg'] );
+        interpLacs{ sliceIndx } = thisDiChromInterpLac( yL : yR, xL : xR );
 
         thisRatio = im_lpRatio( ceil(ds/2) : ds : end, ceil(ds/2) : ds : end, sliceIndx );    %#ok<PFBNS>
         thisRatioResized = imresize( thisRatio, size( thisProton ), 'nearest' );
@@ -102,10 +106,11 @@ function run_c13superRes( datacases, varargin )
         imwrite( thisRatioResized( yL : yR, xL : xR ), ...
           [ outDir, '/thisLpRatio_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
 
-        thisSuperLpRatio = superResC13( thisProton, thisRatio, blurFraction*ds, 'lambda', lambda );
-        imwrite( thisSuperLpRatio( yL : yR, xL : xR ), ...
-          [ outDir, '/thisSuperRatio_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
-        superLpRatios{ sliceIndx } = thisSuperLpRatio( yL : yR, xL : xR );
+        thisDiChromInterpLpRatio = diChromInterpC13( thisProton, thisRatio, blurFraction*ds, ...
+          'lambda', lambda );
+        imwrite( thisDiChromInterpLpRatio( yL : yR, xL : xR ), ...
+          [ outDir, '/thisDiChromInterpRatio_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
+        superLpRatios{ sliceIndx } = thisDiChromInterpLpRatio( yL : yR, xL : xR );
       end
 
       if numel( im_bic ) > 1
@@ -116,35 +121,38 @@ function run_c13superRes( datacases, varargin )
         if scaleIndividually == true, thisBic2Save = thisBic2Save / max( thisBic2Save(:) ); end
         imwrite( thisBic2Save, [ outDir, '/thisBic_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
 
-        thisSuperBic = superResC13( thisProton, thisBic, 0.25*ds, 'lambda', lambda );
-        thisSuperBic2Save = thisSuperBic( yL : yR, xL : xR );
-        if scaleIndividually == true, thisSuperBic2Save = thisSuperBic2Save / max( thisSuperBic2Save(:) ); end
-        imwrite( thisSuperBic2Save, [ outDir, '/thisSuperBic_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
-        superBics{ sliceIndx } = thisSuperBic( yL : yR, xL : xR );
+        thisDiChromInterpBic = diChromInterpC13( thisProton, thisBic, 0.25*ds, 'lambda', lambda );
+        thisDiChromInterpBic2Save = thisDiChromInterpBic( yL : yR, xL : xR );
+        if scaleIndividually == true, thisDiChromInterpBic2Save = ...
+            thisDiChromInterpBic2Save / max( thisDiChromInterpBic2Save(:) ); end
+        imwrite( thisDiChromInterpBic2Save, [ outDir, '/thisDiChromInterpBic_', ...
+          num2str(sliceIndx,'%3.3i'), '.jpg'] );
+        interpBics{ sliceIndx } = thisDiChromInterpBic( yL : yR, xL : xR );
       end
 
-      thisResizedProton = thisProton( 1 : size(thisSuperPyr,1), 1 : size(thisSuperPyr,2) );
+      thisResizedProton = thisProton( 1 : size(thisDiChromInterpPyr,1), 1 : size(thisDiChromInterpPyr,2) );
       resizedProtons{ sliceIndx } = thisResizedProton( yL : yR, xL : xR );
       thisResizedProton2Save = thisResizedProton( yL : yR, xL : xR );
       if scaleIndividually == true
         thisResizedProton2Save = thisResizedProton2Save / max( thisResizedProton2Save(:) );
       end
-      imwrite( thisResizedProton2Save, [ outDir, '/thisResizedProton_', num2str(sliceIndx,'%3.3i'), '.jpg'] );
+      imwrite( thisResizedProton2Save, [ outDir, '/thisResizedProton_', ...
+        num2str(sliceIndx,'%3.3i'), '.jpg'] );
       
       if showImages == false, close all; end
     end
 
-    superPyrs = cell2mat( superPyrs );
+    interpPyrs = cell2mat( interpPyrs );
     origPyrs = cell2mat( origPyrs );
     if numel( im_lac ) > 1
       origLacs = cell2mat( origLacs );
-      superLacs = cell2mat( superLacs );
+      interpLacs = cell2mat( interpLacs );
       origLpRatios = cell2mat( origLpRatios );
       superLpRatios = cell2mat( superLpRatios );
     end
     if numel( im_bic ) > 1
       origBics = cell2mat( origBics );
-      superBics = cell2mat( superBics );
+      interpBics = cell2mat( interpBics );
     end
     resizedProtons = cell2mat( resizedProtons );
 
@@ -167,7 +175,7 @@ function run_c13superRes( datacases, varargin )
     imwrite( origPyrs, [ outDir, '/pyruvatesOrig.jpg' ] );
 
     f = figure;
-    showImageCube( superPyrs, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
+    showImageCube( interpPyrs, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
     titlenice( 'Pyruvate Images' );
     pFrame=getframe(gcf);  pyruvates = double( pFrame.cdata ) / 255.;
     if showImages ~= true, close(f); end
@@ -175,7 +183,7 @@ function run_c13superRes( datacases, varargin )
     imwrite( pyruvates, [ outDir, '/pyruvatesSR.jpg' ] );
     
     f = figure;
-    showImageCube( superPyrs, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
+    showImageCube( interpPyrs, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
     titlenice( 'Pyruvate Images' );  colormap( gca, 'hot' );
     pFrame=getframe(gcf);  pHot = double( pFrame.cdata ) / 255.;
     if showImages == false, close(f); end
@@ -210,14 +218,14 @@ function run_c13superRes( datacases, varargin )
       imwrite( lacHot, [ outDir, '/lactates_hot.jpg' ] );
 
       f = figure;
-      showImageCube( superLacs, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
+      showImageCube( interpLacs, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
       titlenice( 'Lactate Images' );
       pFrame=getframe(gcf);  lacHot = double( pFrame.cdata ) / 255.;
       if showImages ~= true, close(f); end
       imwrite( lacHot, [ outDir, '/lactatesSR.jpg' ] );
 
       f = figure;
-      showImageCube( superLacs, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
+      showImageCube( interpLacs, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
       titlenice( 'Lactate Images' );  colormap( gca, 'hot' );
       pFrame=getframe(gcf);  lacHot = double( pFrame.cdata ) / 255.;
       if showImages ~= true, close(f); end
@@ -280,14 +288,14 @@ function run_c13superRes( datacases, varargin )
       imwrite( bicarbsOrig, [ outDir, '/bicarbsOrig.jpg' ] );
 
       f = figure;
-      showImageCube( superBics, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
+      showImageCube( interpBics, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
       titlenice( 'Bicarbonate Images SuperResolved' );
       pFrame=getframe(gcf);  bicarbsSR = mean( double( pFrame.cdata ) / 255., 3 );
       if showImages ~= true, close(f); end
       imwrite( bicarbsSR, [ outDir, '/bicarbsSR.jpg' ] );
 
       f = figure;
-      showImageCube( superBics, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
+      showImageCube( interpBics, 3, 'nImgsPerRow', nImgsPerRow, 'border', 3, 'borderValue', 'max' );
       titlenice( 'Bicarbonate Images' );  colormap( gca, 'hot' );
       bFrame=getframe(gcf);  bColor = double( bFrame.cdata ) / 255.;
       if showImages == false, close(f); end

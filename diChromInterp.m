@@ -1,6 +1,6 @@
 
-function srImg = diChromSuperRes( highResImg, lowResImg, sigma, varargin )
-  % srImg = superResC13( highResImg, imgLowRes )
+function srImg = diChromInterp( highResImg, lowResImg, sigma, varargin )
+  % srImg = diChromInterp( highResImg, imgLowRes )
   %
   % Inputs:
   % highResImg - a 2D array representing a grayscale of the high resolution proton image
